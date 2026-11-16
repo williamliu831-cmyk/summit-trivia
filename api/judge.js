@@ -27,24 +27,27 @@ Respond with JSON only: {"valid": true or false, "corrected": "correctly spelled
   const user = `QUESTION: ${question}\nPLAYER'S ANSWER: "${answer}"`;
 
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-        response_format: { type: 'json_object' },
-        temperature: 0.2,
-        max_tokens: 300
-      })
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const msg = data?.error?.message || `Groq returned HTTP ${response.status}`;
-      console.error('Groq error:', msg);
-      return res.status(502).json({ error: msg, fallback: true });
+    const MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'openai/gpt-oss-20b'];
+    let data = null, lastErr = 'no model answered';
+    for (const model of MODELS) {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+          response_format: { type: 'json_object' },
+          temperature: 0.2,
+          max_tokens: 300
+        })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok) { data = body; break; }
+      lastErr = `${model}: ${body?.error?.message || 'HTTP ' + response.status}`;
+      console.error('Groq error:', lastErr);
+      if (response.status !== 404 && response.status !== 400) break; // only try the next model for model-name errors
     }
+    if (!data) return res.status(502).json({ error: lastErr, fallback: true });
 
     const text = data.choices?.[0]?.message?.content || '';
     let result;

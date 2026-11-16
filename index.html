@@ -1418,9 +1418,9 @@ async function aiCheck(q,raw){
       body:JSON.stringify({question:q.q,answer:raw})
     });
     const v=await r.json().catch(()=>null);
-    if(!r.ok||!v||typeof v.valid!=='boolean'){console.warn('judge:',v&&v.error);return null;}
+    if(!r.ok||!v||typeof v.valid!=='boolean'){window._judgeErr=(v&&v.error)||('HTTP '+r.status);console.warn('judge:',window._judgeErr);return null;}
     return v;
-  }catch(e){console.warn('judge unreachable',e);return null;}
+  }catch(e){window._judgeErr=e.message;console.warn('judge unreachable',e);return null;}
 }
 
 let _actx=null;
@@ -1487,9 +1487,8 @@ async function submitAnswer(){
     // judge unreachable: use the built-in list as a backup, otherwise ask to retry (never call it wrong)
     const local=matchAnswer(raw,q);
     if(local){acceptAnswer(raw,local.answer,local.typo);return;}
-    wm.innerHTML=`⚠️&nbsp;Couldn't reach the judge. Press Enter to try <strong>${raw}</strong> again.`;
+    wm.innerHTML=`⚠️&nbsp;Judge error: ${window._judgeErr||'unknown'}`;
     wm.style.color='var(--warning)';wm.classList.remove('bump');void wm.offsetWidth;wm.classList.add('bump');
-    document.getElementById('answer-input').value=raw;
     document.getElementById('answer-input').focus();
     return;
   }
@@ -1830,9 +1829,8 @@ async function mpSubmit(){
   if(v===null){
     const local=matchAnswer(raw,q);
     if(local){mpAccept(raw,local.answer);return;}
-    mwm.innerHTML=`⚠️&nbsp;Couldn't reach the judge. Press Enter to try <strong>${raw}</strong> again.`;
+    mwm.innerHTML=`⚠️&nbsp;Judge error: ${window._judgeErr||'unknown'}`;
     mwm.style.color='var(--warning)';mwm.classList.remove('bump');void mwm.offsetWidth;mwm.classList.add('bump');
-    document.getElementById('mp-answer-input').value=raw;
     document.getElementById('mp-answer-input').focus();
     return;
   }
