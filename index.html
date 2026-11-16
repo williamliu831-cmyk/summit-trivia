@@ -340,6 +340,28 @@ button.smode .smode-desc{color:#C9D4E0!important;-webkit-text-fill-color:#C9D4E0
 @keyframes shoot{0%{transform:rotate(var(--a)) translateX(0);opacity:0}5%{opacity:1}85%{opacity:1}100%{transform:rotate(var(--a)) translateX(var(--d));opacity:0}}
 @media(prefers-reduced-motion:reduce){.sec-icon,.scroll-hint,#daily-cta,.screen.active{animation:none!important}.aurora,.shooting-star{display:none!important}#screen-home.active{scroll-behavior:auto;}}
 
+/* ── SIGN-IN SCENE: Matterhorn + snow + zoom into the peak ── */
+#screen-auth{justify-content:flex-start;}
+#screen-auth .auth-wrap{margin-left:clamp(24px,8vw,140px);margin-right:auto;}
+.auth-scene{position:absolute;inset:0;pointer-events:none;transform-origin:74% 19%;transition:transform 1.5s cubic-bezier(.65,0,.25,1),opacity .9s ease .5s;}
+.auth-scene svg{position:absolute;inset:0;width:100%;height:100%;}
+.flake{position:absolute;top:-12px;width:var(--s);height:var(--s);border-radius:50%;background:#fff;opacity:var(--o);animation:flakeFall linear infinite;}
+@keyframes flakeFall{from{transform:translate(0,0)}to{transform:translate(var(--dx),108vh)}}
+#screen-auth.zooming .auth-scene{transform:scale(4.2);opacity:0;}
+#screen-auth .auth-wrap{transition:opacity .5s ease,transform .5s ease;}
+#screen-auth.zooming .auth-wrap{animation:none;opacity:0;transform:translateX(-18px);}
+#warp-veil{position:fixed;inset:0;z-index:999;background:radial-gradient(ellipse at 74% 25%,#1B2638,var(--base) 70%);opacity:0;pointer-events:none;transition:opacity .45s ease;}
+#warp-veil.on{opacity:1;}
+@media(max-width:760px){#screen-auth{justify-content:center;}#screen-auth .auth-wrap{margin:0 auto;}.auth-scene svg{opacity:.55;}}
+@media(prefers-reduced-motion:reduce){.flake{display:none}.auth-scene{transition:none}}
+/* ── leave-daily dialog ── */
+.leave-bg{position:fixed;inset:0;background:rgba(8,12,20,.72);display:none;align-items:center;justify-content:center;z-index:900;padding:20px;}
+.leave-bg.show{display:flex;}
+.leave-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;max-width:380px;width:100%;text-align:center;}
+.leave-card h3{font-size:1.15rem;margin-bottom:10px;}
+.leave-card p{color:var(--text-muted);font-size:0.92rem;line-height:1.5;margin-bottom:22px;}
+.leave-actions{display:flex;gap:10px;justify-content:center;}
+
 /* CELEBRATION */
 @keyframes shakeScreen{0%,100%{transform:translate(0,0)}10%{transform:translate(-10px,5px)}20%{transform:translate(10px,-5px)}30%{transform:translate(-8px,-7px)}40%{transform:translate(8px,7px)}50%{transform:translate(-6px,3px)}60%{transform:translate(6px,-3px)}70%{transform:translate(-3px,-3px)}80%{transform:translate(3px,3px)}90%{transform:translate(-1px,1px)}}
 body.shake{animation:shakeScreen 0.65s ease;}
@@ -375,18 +397,38 @@ body.shake{animation:shakeScreen 0.65s ease;}
 
 <!-- AUTH -->
 <div id="screen-auth" class="screen active" style="position:relative;overflow:hidden;">
-  <svg style="position:absolute;bottom:0;left:0;width:100%;height:240px;pointer-events:none;" viewBox="0 0 1200 240" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-    <polygon points="0,240 0,130 150,55 300,118 450,35 600,108 750,20 900,92 1050,50 1200,100 1200,240" fill="#8FA3B8" opacity="0.28"/>
-    <polygon points="450,35 430,58 450,47 470,58" fill="#FFFFFF" opacity="0.75"/>
-    <polygon points="750,20 726,48 750,35 774,48" fill="#FFFFFF" opacity="0.85"/>
-    <polygon points="1050,50 1033,70 1050,61 1067,70" fill="#FFFFFF" opacity="0.7"/>
-    <polygon points="150,55 136,72 150,64 164,72" fill="#FFFFFF" opacity="0.6"/>
-    <rect x="0" y="120" width="1200" height="30" fill="#DCE6F0" opacity="0.07"/>
-    <polygon points="0,240 0,168 200,105 400,150 600,85 800,135 1000,95 1200,140 1200,240" fill="#55687E" opacity="0.35"/>
-    <polygon points="600,85 586,100 600,93 614,100" fill="#E8EEF5" opacity="0.6"/>
-    <polygon points="1000,95 988,108 1000,102 1012,108" fill="#E8EEF5" opacity="0.5"/>
-    <polygon points="0,240 0,200 250,152 500,185 750,142 1000,178 1200,152 1200,240" fill="#141C29" opacity="0.95"/>
-  </svg>
+  <div class="auth-scene" aria-hidden="true">
+    <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="mhSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0E1420"/><stop offset="1" stop-color="#1E2B3F"/></linearGradient>
+        <linearGradient id="mhFace" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9D6E3"/><stop offset="1" stop-color="#6F8399"/></linearGradient>
+        <linearGradient id="mhShade" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A3A50"/><stop offset="1" stop-color="#18222F"/></linearGradient>
+      </defs>
+      <rect width="1600" height="900" fill="url(#mhSky)"/>
+      <!-- far range -->
+      <polygon points="0,520 120,395 215,450 330,300 430,395 560,285 690,410 800,365 900,520 900,900 0,900" fill="#33455C" opacity="0.7"/>
+      <polygon points="330,300 300,338 330,322 360,338" fill="#F2F6FA" opacity="0.9"/>
+      <polygon points="560,285 528,326 560,308 592,326" fill="#F2F6FA" opacity="0.85"/>
+      <!-- near range -->
+      <polygon points="0,640 180,500 320,575 470,470 610,590 720,540 820,660 820,900 0,900" fill="#22324A" opacity="0.9"/>
+      <polygon points="470,470 448,500 470,490 492,500" fill="#EAF1F8" opacity="0.8"/>
+      <!-- MATTERHORN: the sharp pyramid, right of centre -->
+      <polygon points="1180,160 1262,300 1290,286 1358,468 1430,540 1600,650 1600,900 880,900 960,660 1020,500 1060,398 1126,288" fill="#4B5F78"/>
+      <polygon points="1180,160 1126,288 1060,398 1020,500 1090,470 1140,430 1162,300" fill="url(#mhShade)"/>
+      <polygon points="1180,160 1262,300 1290,286 1358,468 1300,420 1236,400 1200,300" fill="url(#mhFace)" opacity="0.85"/>
+      <polygon points="1180,160 1158,230 1174,222 1186,246 1200,214 1214,240 1240,262 1226,250 1210,206" fill="#FFFFFF"/>
+      <polygon points="1180,160 1140,262 1162,258 1180,278 1196,252" fill="#FFFFFF" opacity="0.55"/>
+      <!-- snow couloirs and ridge lines -->
+      <path d="M1180,170 L1150,330 L1120,470" stroke="#E8EEF5" stroke-width="2" fill="none" opacity="0.35"/>
+      <path d="M1236,300 L1250,420 L1300,520" stroke="#E8EEF5" stroke-width="2" fill="none" opacity="0.3"/>
+      <path d="M1100,520 L1070,640 M1300,540 L1330,700" stroke="#DCE6F0" stroke-width="1.5" fill="none" opacity="0.2"/>
+      <!-- foreground glacier valley -->
+      <polygon points="0,760 300,700 620,745 900,690 1200,770 1600,725 1600,900 0,900" fill="#141C29"/>
+      <path d="M220,820 Q520,790 820,830 T1420,820" stroke="#B8C9DA" stroke-width="3" fill="none" opacity="0.25"/>
+      <path d="M180,860 Q560,840 980,865 T1500,850" stroke="#B8C9DA" stroke-width="2" fill="none" opacity="0.18"/>
+    </svg>
+    <div id="snowfield"></div>
+  </div>
   <div class="auth-wrap fade-up" style="position:relative;z-index:1;">
     <div class="auth-logo">
       <div class="auth-logo-text">Summit<span>.</span></div>
@@ -409,6 +451,18 @@ body.shake{animation:shakeScreen 0.65s ease;}
       <button class="btn btn-primary" style="width:100%" onclick="doSignup()">Create account</button>
     </div>
     <div class="guest-row">Just exploring? <button onclick="playGuest()">Continue as guest</button></div>
+  </div>
+</div>
+
+<div id="warp-veil"></div>
+<div id="leave-bg" class="leave-bg" onclick="if(event.target===this)cancelLeave()">
+  <div class="leave-card">
+    <h3>Leave today's Summit?</h3>
+    <p>You can't play today's quiz again once you leave. Your score so far will be saved.</p>
+    <div class="leave-actions">
+      <button class="btn btn-secondary" onclick="cancelLeave()">Stay</button>
+      <button class="btn btn-danger" onclick="confirmLeaveDaily()">Leave</button>
+    </div>
   </div>
 </div>
 
@@ -527,7 +581,7 @@ body.shake{animation:shakeScreen 0.65s ease;}
   <div id="daily-banner" class="daily-banner" style="display:none">⭐ Daily Summit — <span id="daily-date-label"></span></div>
   <div id="practice-banner" class="practice-banner" style="display:none">🎯 Practice Set — No Elo impact</div>
   <div class="trivia-top">
-    <button class="back-btn" onclick="goHome()">← Back</button>
+    <button class="back-btn" onclick="requestHome()">← Back</button>
     <div class="progress-wrap">
       <div class="progress-top"><span id="q-label">Question 1 of 10</span><span id="q-score-label">Score: 0</span></div>
       <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
@@ -1174,14 +1228,14 @@ async function doLogin(){
     currentUser={username:user,isGuest:false,pw:cu.pw};
     userData={trivia:cu.trivia||1000,lastMountain:cu.lastMountain||null};
     const u=getUsers();u[user]={_pw:cu.pw,trivia:userData.trivia,lastMountain:userData.lastMountain};saveUsers(u);
-    goHome();return;
+    passAuth();return;
   }
   const u=getUsers();
   if(u[user]&&(u[user]._pw===btoa(pass)||u[user]._pw===h)){
     currentUser={username:user,isGuest:false,pw:h};
     userData=loadUD(user);
     cloudSaveSoon();
-    goHome();return;
+    passAuth();return;
   }
   err.textContent='Username or password is incorrect.';err.classList.add('show');
 }
@@ -1199,9 +1253,9 @@ async function doSignup(){
   currentUser={username:user,isGuest:false,pw:h};
   userData={trivia:1000,lastMountain:null};
   cloudSetUser(user,{pw:h,trivia:1000,lastMountain:null});
-  goHome();
+  passAuth();
 }
-function playGuest(){currentUser={username:'Guest',isGuest:true};userData={trivia:1000,lastMountain:null};goHome();}
+function playGuest(){currentUser={username:'Guest',isGuest:true};userData={trivia:1000,lastMountain:null};passAuth();}
 function signOut(){if(qTimer)clearInterval(qTimer);if(matchTimer)clearInterval(matchTimer);currentUser=null;
 // ═══ SKY: shooting stars + occasional aurora ═══
 (function(){
@@ -1265,6 +1319,55 @@ function updateHome(){
     st.innerHTML=`You scored <strong style="color:var(--gold)">${res.score} pts</strong> \u2192 <strong>${res.mountain}</strong><br><span style="color:var(--text-dim);font-size:0.82rem">Next quiz in ${nextResetCountdown()}</span>`;
   }else{cta.disabled=false;cta.textContent="Play today's quiz";cta.onclick=startDaily;cta.classList.add('btn-gold');cta.classList.remove('btn-secondary');st.style.display='none';}
 }
+
+// ── leaving the daily: confirm, then lock it for today ──
+function requestHome(){
+  const onTrivia=document.getElementById('screen-trivia').classList.contains('active');
+  if(onTrivia&&sessionIsDaily&&!hasDoneDaily()){document.getElementById('leave-bg').classList.add('show');return;}
+  goHome();
+}
+function cancelLeave(){document.getElementById('leave-bg').classList.remove('show');}
+function confirmLeaveDaily(){
+  document.getElementById('leave-bg').classList.remove('show');
+  const pts=sessionResults.reduce((t,r)=>t+(r.pts||0),0);
+  const mtn=mountainForPts(pts);
+  markDailyDone(pts,mtn,{delta:0,forfeit:true,results:sessionResults.map(r=>({q:r.q,pts:r.pts,m:r.mountain.name,e:r.mountain.elev})),share:''});
+  sessionIsDaily=false;
+  goHome();
+  toast("Today's Summit is locked. Your score is saved.");
+}
+
+// ── sign-in / guest: zoom into the Matterhorn, then reveal home ──
+let _passing=false;
+function passAuth(){
+  if(_passing)return;_passing=true;
+  const a=document.getElementById('screen-auth');
+  a.classList.add('zooming');
+  setTimeout(()=>document.getElementById('warp-veil').classList.add('on'),1150);
+  setTimeout(()=>{
+    goHome();
+    a.classList.remove('zooming');
+    requestAnimationFrame(()=>document.getElementById('warp-veil').classList.remove('on'));
+    _passing=false;
+  },1650);
+}
+// snowfall for the sign-in scene
+(function(){
+  const f=document.getElementById('snowfield');if(!f)return;
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  for(let i=0;i<70;i++){
+    const d=document.createElement('div');d.className='flake';
+    const size=(1.5+Math.random()*3).toFixed(1);
+    d.style.setProperty('--s',size+'px');
+    d.style.setProperty('--o',(0.3+Math.random()*0.5).toFixed(2));
+    d.style.setProperty('--dx',((Math.random()*60)-30).toFixed(0)+'px');
+    d.style.left=(Math.random()*100)+'%';
+    d.style.animationDuration=(9+Math.random()*12).toFixed(1)+'s';
+    d.style.animationDelay=(-Math.random()*20).toFixed(1)+'s';
+    f.appendChild(d);
+  }
+})();
+
 function showDailyResults(){
   const res=getDailyResult();if(!res)return;
   document.getElementById('daily-result-badge').style.display='';
