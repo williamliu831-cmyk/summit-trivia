@@ -341,8 +341,8 @@ button.smode .smode-desc{color:#C9D4E0!important;-webkit-text-fill-color:#C9D4E0
 @media(prefers-reduced-motion:reduce){.sec-icon,.scroll-hint,#daily-cta,.screen.active{animation:none!important}.aurora,.shooting-star{display:none!important}#screen-home.active{scroll-behavior:auto;}}
 
 /* ── SIGN-IN SCENE: Matterhorn + snow + zoom into the peak ── */
-#screen-auth{justify-content:flex-start;}
-#screen-auth .auth-wrap{margin-left:clamp(24px,8vw,140px);margin-right:auto;}
+#screen-auth{justify-content:center;}
+#screen-auth .auth-wrap{margin:0 auto;}
 .auth-scene{position:absolute;inset:0;pointer-events:none;transform-origin:74% 19%;transition:transform 1.5s cubic-bezier(.65,0,.25,1),opacity .9s ease .5s;}
 .auth-scene svg{position:absolute;inset:0;width:100%;height:100%;}
 .flake{position:absolute;top:-12px;width:var(--s);height:var(--s);border-radius:50%;background:#fff;opacity:var(--o);animation:flakeFall linear infinite;}
@@ -352,7 +352,7 @@ button.smode .smode-desc{color:#C9D4E0!important;-webkit-text-fill-color:#C9D4E0
 #screen-auth.zooming .auth-wrap{animation:none;opacity:0;transform:translateX(-18px);}
 #warp-veil{position:fixed;inset:0;z-index:999;background:radial-gradient(ellipse at 74% 25%,#1B2638,var(--base) 70%);opacity:0;pointer-events:none;transition:opacity .45s ease;}
 #warp-veil.on{opacity:1;}
-@media(max-width:760px){#screen-auth{justify-content:center;}#screen-auth .auth-wrap{margin:0 auto;}.auth-scene svg{opacity:.55;}}
+@media(max-width:760px){.auth-scene svg{opacity:.55;}}
 @media(prefers-reduced-motion:reduce){.flake{display:none}.auth-scene{transition:none}}
 /* ── leave-daily dialog ── */
 .leave-bg{position:fixed;inset:0;background:rgba(8,12,20,.72);display:none;align-items:center;justify-content:center;z-index:900;padding:20px;}
@@ -1158,8 +1158,20 @@ function getDailyQuestions(){
   for(let i=all.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[all[i],all[j]]=[all[j],all[i]];}
   return all.slice(0,10);
 }
-function hasDoneDaily(){const key=todayKey();try{return JSON.parse(localStorage.getItem('summit_daily')||'{}')[key]!=null;}catch{return false;}}
-function markDailyDone(score,mountain,extra){const key=todayKey();try{const d=JSON.parse(localStorage.getItem('summit_daily')||'{}');d[key]=Object.assign({score,mountain:mountain.name,elev:mountain.elev,ts:Date.now()},extra||{});localStorage.setItem('summit_daily',JSON.stringify(d));}catch{}}
+function hasDoneDaily(){
+  const key=todayKey();
+  if(currentUser&&!currentUser.isGuest&&userData&&userData.lastDaily===key)return true;
+  try{return JSON.parse(localStorage.getItem('summit_daily')||'{}')[key]!=null;}catch{return false;}
+}
+function markDailyDone(score,mountain,extra){
+  const key=todayKey();
+  try{const d=JSON.parse(localStorage.getItem('summit_daily')||'{}');d[key]=Object.assign({score,mountain:mountain.name,elev:mountain.elev,ts:Date.now()},extra||{});localStorage.setItem('summit_daily',JSON.stringify(d));}catch{}
+  // lock it on the account right away, so no other device can replay it
+  if(currentUser&&!currentUser.isGuest&&currentUser.pw){
+    userData.lastDaily=key;
+    cloudSetUser(currentUser.username,{pw:currentUser.pw,trivia:userData.trivia,lastMountain:userData.lastMountain,lastDaily:key});
+  }
+}
 function getDailyResult(){const key=todayKey();try{return JSON.parse(localStorage.getItem('summit_daily')||'{}')[key]||null;}catch{return null;}}
 function nextResetCountdown(){const now=new Date(),tomorrow=new Date(now);tomorrow.setDate(tomorrow.getDate()+1);tomorrow.setHours(0,0,0,0);const diff=tomorrow-now;return`${Math.floor(diff/3600000)}h ${Math.floor((diff%3600000)/60000)}m`;}
 
@@ -1215,7 +1227,7 @@ let _cloudSaveT=null;
 function cloudSaveSoon(){
   if(!currentUser||currentUser.isGuest||!currentUser.pw)return;
   clearTimeout(_cloudSaveT);
-  _cloudSaveT=setTimeout(()=>{cloudSetUser(currentUser.username,{pw:currentUser.pw,trivia:userData.trivia,lastMountain:userData.lastMountain});},1500);
+  _cloudSaveT=setTimeout(()=>{cloudSetUser(currentUser.username,{pw:currentUser.pw,trivia:userData.trivia,lastMountain:userData.lastMountain,lastDaily:userData.lastDaily||null});},1500);
 }
 async function doLogin(){
   const user=document.getElementById('l-user').value.trim().toLowerCase(),pass=document.getElementById('l-pass').value;
@@ -1226,7 +1238,7 @@ async function doLogin(){
   if(cu){
     if(cu.pw!==h&&cu.pw!==btoa(pass)){err.textContent='Username or password is incorrect.';err.classList.add('show');return;}
     currentUser={username:user,isGuest:false,pw:cu.pw};
-    userData={trivia:cu.trivia||1000,lastMountain:cu.lastMountain||null};
+    userData={trivia:cu.trivia||1000,lastMountain:cu.lastMountain||null,lastDaily:cu.lastDaily||null};
     const u=getUsers();u[user]={_pw:cu.pw,trivia:userData.trivia,lastMountain:userData.lastMountain};saveUsers(u);
     passAuth();return;
   }
@@ -1749,8 +1761,11 @@ async function gameRead(code){
 async function gameWrite(code,g){
   try{
     const r=await fetch('/api/game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,data:g})});
-    if(r.ok)return true;throw new Error('server error');
-  }catch{
+    const j=await r.json().catch(()=>({}));
+    if(r.ok){window._mpOffline=false;return true;}
+    throw new Error(j.error||('HTTP '+r.status));
+  }catch(e){
+    window._mpOffline=true;window._mpErr=e.message;
     try{localStorage.setItem('summit_mp_'+code,JSON.stringify(g));return true;}catch{return false;}
   }
 }
@@ -1788,6 +1803,7 @@ async function startHost(){
   document.getElementById('start-game-btn').disabled=true;
   showScreen('screen-host');
   await gameWrite(code,game);
+  if(window._mpOffline)toast('Online play couldn\u2019t save the game: '+(window._mpErr||'unknown error'));
   mpGame.hostPoll=setInterval(refreshHostLobby,2000);
 }
 async function refreshHostLobby(){
