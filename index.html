@@ -853,7 +853,7 @@ const MOUNTAINS=[
 // Niche answers (high pts) → legendary peaks. Common answers → smaller hills.
 function mountainForPts(pts){
   if(pts<=0)return MOUNTAINS[MOUNTAINS.length-1];
-  const tiers=[[100,0],[95,1],[90,2],[85,3],[80,4],[75,5],[70,6],[65,7],[60,8],[55,9],[50,10],[45,11],[40,12],[30,13],[22,14],[12,15],[1,16]];
+  const tiers=[[98,0],[92,1],[86,2],[80,3],[74,4],[68,5],[62,6],[56,7],[50,8],[44,9],[38,10],[32,11],[26,12],[20,13],[14,14],[8,15],[1,16]];
   for(const[min,idx]of tiers)if(pts>=min)return MOUNTAINS[idx];
   return MOUNTAINS[MOUNTAINS.length-1];
 }
