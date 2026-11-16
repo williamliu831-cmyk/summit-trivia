@@ -1852,6 +1852,7 @@ async function refreshHostLive(){
 }
 async function hostEndGame(){
   if(mpGame.livePoll)clearInterval(mpGame.livePoll);
+  mpGame.endedHandled=true;
   await gameDelete(mpGame.code);
   goHome();
 }
@@ -1874,6 +1875,28 @@ async function joinGame(){
   renderPlayerChips(lp,g.players,'\u2026');
   showScreen('screen-lobby');
   mpGame.joinPoll=setInterval(checkGameStart,2000);
+  mpGame.endPoll=setInterval(checkHostEnded,2000);
+}
+// players watch for the host ending the game (the game record is deleted)
+async function checkHostEnded(){
+  if(!mpGame||mpGame.isHost||mpGame.endedHandled)return;
+  const onLobby=document.getElementById('screen-lobby').classList.contains('active');
+  const onTrivia=document.getElementById('screen-mp-trivia').classList.contains('active');
+  if(!onLobby&&!onTrivia){clearInterval(mpGame.endPoll);return;}
+  try{
+    const r=await fetch('/api/game?code='+encodeURIComponent(mpGame.code));
+    let ended=r.status===404;
+    if(r.ok){const g=await r.json();ended=g.status==='ended';}
+    if(ended)endedByHost();
+  }catch{}
+}
+function endedByHost(){
+  if(!mpGame||mpGame.endedHandled)return;
+  mpGame.endedHandled=true;
+  clearInterval(mpGame.endPoll);clearInterval(mpGame.joinPoll);clearInterval(mpGame.mpTimer);
+  const score=mpGame.myScore||0;
+  goHome();
+  toast('The host ended the game.'+(score?' Your score: '+score+' pts.':''));
 }
 async function checkGameStart(){
   if(!mpGame||mpGame.pollBusy)return;mpGame.pollBusy=true;
