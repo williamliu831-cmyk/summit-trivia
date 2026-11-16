@@ -334,6 +334,9 @@ button.smode .smode-desc{color:#C9D4E0!important;-webkit-text-fill-color:#C9D4E0
 .a2{top:-20%;background:linear-gradient(80deg,transparent 15%,rgba(155,109,214,0.13) 45%,rgba(67,201,135,0.11) 70%,transparent 95%);animation:auroraWave 19s ease-in-out infinite reverse;}
 .a3{top:-5%;background:linear-gradient(95deg,transparent 20%,rgba(91,180,220,0.10) 50%,rgba(245,201,74,0.06) 75%,transparent 95%);animation:auroraWave 23s ease-in-out infinite;}
 #sky.aurora-on .aurora{opacity:1;}
+.starfield{position:absolute;inset:0;}
+.tw{position:absolute;border-radius:50%;background:#fff;opacity:var(--lo);animation:twinkle ease-in-out infinite;}
+@keyframes twinkle{0%,100%{opacity:var(--lo)}50%{opacity:var(--hi)}}
 @keyframes auroraWave{0%,100%{transform:skewY(-6deg) translateX(-4%) scaleY(1)}50%{transform:skewY(-3deg) translateX(4%) scaleY(1.22)}}
 .shooting-star{position:absolute;width:150px;height:2px;border-radius:2px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.55) 70%,rgba(255,255,255,0.95));transform-origin:100% 50%;animation:shoot var(--dur) cubic-bezier(.4,0,.8,1) forwards;}
 .shooting-star::after{content:'';position:absolute;right:-3px;top:-2px;width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 10px 3px rgba(255,255,255,0.9);}
@@ -853,7 +856,7 @@ const MOUNTAINS=[
 // Niche answers (high pts) → legendary peaks. Common answers → smaller hills.
 function mountainForPts(pts){
   if(pts<=0)return MOUNTAINS[MOUNTAINS.length-1];
-  const tiers=[[98,0],[92,1],[86,2],[80,3],[74,4],[68,5],[62,6],[56,7],[50,8],[44,9],[38,10],[32,11],[26,12],[20,13],[14,14],[8,15],[1,16]];
+  const tiers=[[99,0],[96,1],[93,2],[90,3],[88,4],[85,5],[82,6],[79,7],[76,8],[72,9],[66,10],[60,11],[54,12],[46,13],[38,14],[26,15],[10,16],[1,16]];
   for(const[min,idx]of tiers)if(pts>=min)return MOUNTAINS[idx];
   return MOUNTAINS[MOUNTAINS.length-1];
 }
@@ -1273,6 +1276,22 @@ function signOut(){if(qTimer)clearInterval(qTimer);if(matchTimer)clearInterval(m
 (function(){
   if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const sky=document.getElementById('sky');if(!sky)return;
+  // back layer: twinkling stars of many sizes
+  const field=document.createElement('div');field.className='starfield';sky.insertBefore(field,sky.firstChild);
+  for(let i=0;i<170;i++){
+    const st=document.createElement('div');st.className='tw';
+    const big=Math.random()<0.12;
+    const sz=big?(2+Math.random()*1.6):(0.6+Math.random()*1.2);
+    st.style.width=st.style.height=sz.toFixed(1)+'px';
+    st.style.left=(Math.random()*100)+'%';
+    st.style.top=(Math.random()*100)+'%';
+    st.style.setProperty('--lo',(0.15+Math.random()*0.25).toFixed(2));
+    st.style.setProperty('--hi',(0.7+Math.random()*0.3).toFixed(2));
+    st.style.animationDuration=(2+Math.random()*5).toFixed(1)+'s';
+    st.style.animationDelay=(-Math.random()*6).toFixed(1)+'s';
+    if(big)st.style.boxShadow='0 0 6px 1px rgba(255,255,255,0.6)';
+    field.appendChild(st);
+  }
   function spawnStar(){
     const s=document.createElement('div');s.className='shooting-star';
     const goRight=Math.random()<0.5;
@@ -1289,8 +1308,8 @@ function signOut(){if(qTimer)clearInterval(qTimer);if(matchTimer)clearInterval(m
     sky.appendChild(s);
     setTimeout(()=>s.remove(),2600);
   }
-  setInterval(()=>{if(Math.random()<0.65)spawnStar();},1800);
-  setTimeout(()=>{spawnStar();spawnStar();},2000);
+  setInterval(()=>{if(Math.random()<0.5)spawnStar();},7000);
+  setTimeout(spawnStar,3000);
   (function auroraLoop(){
     sky.classList.add('aurora-on');
     setTimeout(()=>{
@@ -1417,7 +1436,9 @@ function eloRank(e){if(e>=1500)return'Everest tier';if(e>=1300)return'Summit tie
 // ELO
 // ═══════════════════════════════════════════
 const Q_ELO={1:800,2:1200,3:1600};
-function calcElo(elo,diff,correct){const q=Q_ELO[diff]||1200,e=1/(1+Math.pow(10,(q-elo)/400));return Math.round(elo+32*((correct?1:0)-e));}
+function calcElo(elo,diff,correct){const q=Q_ELO[diff]||1200,e=1/(1+Math.pow(10,(q-elo)/400));const outcome=typeof correct==='number'?correct:(correct?1:0);return Math.round(elo+32*(outcome-e));}
+// graded result: 20 pts = nothing, 70+ pts = full win
+function eloOutcome(pts){return Math.max(0,Math.min(1,(pts-20)/50));}
 
 // ═══════════════════════════════════════════
 // TRIVIA ENGINE
@@ -1579,7 +1600,7 @@ function acceptAnswer(raw,answer,typo){
   document.getElementById('qmb-pts').textContent=answer.pts+' pts';
   document.getElementById('q-mountain-banner').classList.add('show');
   celebrate(answer.pts,mountain);
-  if(!sessionIsPractice) userData.trivia=calcElo(userData.trivia,q.diff,answer.pts>=50);
+  if(!sessionIsPractice) userData.trivia=calcElo(userData.trivia,q.diff,eloOutcome(answer.pts));
   endQuestion(answer.pts,mountain);
 }
 async function submitAnswer(){
