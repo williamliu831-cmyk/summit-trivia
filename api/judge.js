@@ -20,7 +20,7 @@ Rules:
 2. Accept common alternate names, abbreviations, and spellings (USA, DRC, Congo, etc.).
 3. Accept small typos when the intended answer is clear. Put the correctly spelled answer in "corrected".
 4. Reject answers that do not satisfy the question, are gibberish, or are not real things. Set "valid" to false.
-5. Quality score, only when valid: how obscure or niche the answer is. 1-25 = very common and obvious, 26-50 = well known, 51-75 = moderately niche, 76-90 = niche, 91-100 = expert-level and rare.
+5. Quality score, only when valid: how obscure or niche the answer is. Be generous: a correct answer that a typical adult would not say first should score at least 50. 1-20 = the single most obvious answer, 21-45 = common, 46-70 = solid and moderately niche, 71-88 = niche, 89-100 = expert-level and rare.
 
 Respond with JSON only: {"valid": true or false, "corrected": "correctly spelled answer or the same answer", "score": number 1-100 (use 1 if invalid)}`;
 
