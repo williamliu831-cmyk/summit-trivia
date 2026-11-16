@@ -1,4 +1,4 @@
-// AI judge for every typed answer, powered by Google Gemini.
+// AI judge for every typed answer, powered by Groq.
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -7,53 +7,46 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed', fallback: true });
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY is not set in Vercel', fallback: true });
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY is not set in Vercel', fallback: true });
 
   const { question, answer } = req.body || {};
   if (!question || !answer) return res.status(400).json({ error: 'Missing question or answer', fallback: true });
 
-  const prompt = `You are the judge in an open-ended trivia game. Players type any answer they can think of, so the answer list is NOT limited. Decide whether the player's answer is a correct answer to the question using your own knowledge.
-
-QUESTION: ${question}
-PLAYER'S ANSWER: "${answer}"
+  const system = `You are the judge in an open-ended trivia game. Players type any answer they can think of, so the answer list is NOT limited. Decide whether the player's answer is a correct answer to the question using your own knowledge.
 
 Rules:
-1. Accept any answer that truly satisfies the question, even if it is not a famous or common example. Your own knowledge is the authority. Example: for "Name a country in Africa", "Democratic Republic of the Congo" is valid.
-2. Accept common alternate names, abbreviations, and spellings (USA, DRC, Congo, Mickey Mouse, etc.).
+1. Accept any answer that truly satisfies the question, even if it is not a famous or common example. Example: for "Name a country in Africa", "Democratic Republic of the Congo" is valid.
+2. Accept common alternate names, abbreviations, and spellings (USA, DRC, Congo, etc.).
 3. Accept small typos when the intended answer is clear. Put the correctly spelled answer in "corrected".
 4. Reject answers that do not satisfy the question, are gibberish, or are not real things. Set "valid" to false.
-5. Quality score, only when valid: how obscure or niche the answer is. 1-25 = very common and obvious, 26-50 = well known, 51-75 = moderately niche, 76-90 = niche, 91-100 = expert-level and rare. A valid but obvious answer still scores above 0.
+5. Quality score, only when valid: how obscure or niche the answer is. 1-25 = very common and obvious, 26-50 = well known, 51-75 = moderately niche, 76-90 = niche, 91-100 = expert-level and rare.
 
-Respond with JSON only, in this exact shape:
-{"valid": true or false, "corrected": "the correctly spelled answer, or the same answer", "score": number from 1 to 100 (use 1 if invalid)}`;
+Respond with JSON only: {"valid": true or false, "corrected": "correctly spelled answer or the same answer", "score": number 1-100 (use 1 if invalid)}`;
+
+  const user = `QUESTION: ${question}\nPLAYER'S ANSWER: "${answer}"`;
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 400,
-            responseMimeType: 'application/json',
-            thinkingConfig: { thinkingBudget: 0 }
-          }
-        })
-      }
-    );
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        response_format: { type: 'json_object' },
+        temperature: 0.2,
+        max_tokens: 300
+      })
+    });
 
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const msg = data?.error?.message || `Gemini returned HTTP ${response.status}`;
-      console.error('Gemini error:', msg);
+      const msg = data?.error?.message || `Groq returned HTTP ${response.status}`;
+      console.error('Groq error:', msg);
       return res.status(502).json({ error: msg, fallback: true });
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+    const text = data.choices?.[0]?.message?.content || '';
     let result;
     try { result = JSON.parse(text); }
     catch {
