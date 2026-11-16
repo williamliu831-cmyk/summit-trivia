@@ -335,9 +335,9 @@ button.smode .smode-desc{color:#C9D4E0!important;-webkit-text-fill-color:#C9D4E0
 .a3{top:-5%;background:linear-gradient(95deg,transparent 20%,rgba(91,180,220,0.10) 50%,rgba(245,201,74,0.06) 75%,transparent 95%);animation:auroraWave 23s ease-in-out infinite;}
 #sky.aurora-on .aurora{opacity:1;}
 @keyframes auroraWave{0%,100%{transform:skewY(-6deg) translateX(-4%) scaleY(1)}50%{transform:skewY(-3deg) translateX(4%) scaleY(1.22)}}
-.shooting-star{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;box-shadow:0 0 8px 2px rgba(255,255,255,0.8);animation:shoot linear forwards;}
-.shooting-star::after{content:'';position:absolute;top:50%;left:2px;width:95px;height:1.5px;background:linear-gradient(90deg,rgba(255,255,255,0.95),transparent);transform:translateY(-50%);}
-@keyframes shoot{0%{transform:translate(0,0);opacity:0}8%{opacity:1}85%{opacity:1}100%{transform:translate(-58vw,30vh);opacity:0}}
+.shooting-star{position:absolute;width:150px;height:2px;border-radius:2px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.55) 70%,rgba(255,255,255,0.95));transform-origin:100% 50%;animation:shoot var(--dur) cubic-bezier(.4,0,.8,1) forwards;}
+.shooting-star::after{content:'';position:absolute;right:-3px;top:-2px;width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 10px 3px rgba(255,255,255,0.9);}
+@keyframes shoot{0%{transform:rotate(var(--a)) translateX(0);opacity:0}5%{opacity:1}85%{opacity:1}100%{transform:rotate(var(--a)) translateX(var(--d));opacity:0}}
 @media(prefers-reduced-motion:reduce){.sec-icon,.scroll-hint,#daily-cta,.screen.active{animation:none!important}.aurora,.shooting-star{display:none!important}#screen-home.active{scroll-behavior:auto;}}
 
 /* CELEBRATION */
@@ -553,7 +553,7 @@ body.shake{animation:shakeScreen 0.65s ease;}
         <div class="q-mountain-pts" id="qmb-pts"></div>
       </div>
       <div class="time-up-reveal" id="time-up-box">
-        <div class="reveal-label">Time's up — valid answers included:</div>
+        <div class="reveal-label">Time's up!</div>
         <div class="reveal-answers" id="reveal-list"></div>
       </div>
       <div class="guess-history" id="guess-history"></div>
@@ -754,7 +754,7 @@ body.shake{animation:shakeScreen 0.65s ease;}
         <div class="q-mountain-pts" id="mp-mtn-pts"></div>
       </div>
       <div class="time-up-reveal" id="mp-timeup-box">
-        <div class="reveal-label">Time's up — valid answers included:</div>
+        <div class="reveal-label">Time's up!</div>
         <div class="reveal-answers" id="mp-reveal-list"></div>
       </div>
       <div class="guess-history" id="mp-guess-history"></div>
@@ -1209,14 +1209,22 @@ function signOut(){if(qTimer)clearInterval(qTimer);if(matchTimer)clearInterval(m
   const sky=document.getElementById('sky');if(!sky)return;
   function spawnStar(){
     const s=document.createElement('div');s.className='shooting-star';
-    s.style.top=(2+Math.random()*32)+'%';
-    s.style.left=(45+Math.random()*52)+'%';
-    s.style.animationDuration=(0.8+Math.random()*0.9)+'s';
+    const goRight=Math.random()<0.5;
+    const tilt=(6+Math.random()*16)*(Math.random()<0.5?1:-1);      // near-horizontal, slight up or down
+    const a=goRight?tilt:180+tilt;                                 // 180 flips it to travel left
+    const hx=goRight?(Math.random()*40-5):(65+Math.random()*40);   // head start, left or right side
+    const hy=4+Math.random()*40;                                   // head start height (%)
+    s.style.left='calc('+hx+'% - 150px)';
+    s.style.top='calc('+hy+'% - 1px)';
+    s.style.setProperty('--a',a+'deg');
+    s.style.setProperty('--d',(40+Math.random()*35)+'vw');
+    s.style.setProperty('--dur',(0.9+Math.random()*1.1)+'s');
+    s.style.opacity=(0.75+Math.random()*0.25);
     sky.appendChild(s);
-    setTimeout(()=>s.remove(),2000);
+    setTimeout(()=>s.remove(),2600);
   }
-  setInterval(()=>{if(Math.random()<0.45)spawnStar();},3500);
-  setTimeout(spawnStar,2500);
+  setInterval(()=>{if(Math.random()<0.65)spawnStar();},1800);
+  setTimeout(()=>{spawnStar();spawnStar();},2000);
   (function auroraLoop(){
     sky.classList.add('aurora-on');
     setTimeout(()=>{
@@ -1409,26 +1417,47 @@ async function aiCheck(q,raw){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({question:q.q,answer:raw})
     });
-    if(!r.ok)return null;
-    const v=await r.json();
-    if(v.fallback||typeof v.valid!=='boolean')return null;
+    const v=await r.json().catch(()=>null);
+    if(!r.ok||!v||typeof v.valid!=='boolean'){console.warn('judge:',v&&v.error);return null;}
     return v;
-  }catch(e){return null;}
+  }catch(e){console.warn('judge unreachable',e);return null;}
 }
 
+let _actx=null;
+function sfx(kind){
+  try{
+    _actx=_actx||new (window.AudioContext||window.webkitAudioContext)();
+    const t=_actx.currentTime;
+    const notes=kind==='correct'?[[660,0],[880,0.09]]:[[196,0]];
+    notes.forEach(([f,d])=>{
+      const o=_actx.createOscillator(),g=_actx.createGain();
+      o.type=kind==='correct'?'sine':'triangle';
+      o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t+d);
+      g.gain.exponentialRampToValueAtTime(0.05,t+d+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+d+(kind==='correct'?0.3:0.22));
+      o.connect(g).connect(_actx.destination);
+      o.start(t+d);o.stop(t+d+0.35);
+    });
+  }catch(e){}
+}
 function showWrong(wm,raw){
+  sfx('wrong');
   wm.innerHTML=`✗&nbsp;<strong>${raw}</strong>&nbsp;isn't valid — keep trying!`;
   wm.style.color='';wm.style.display='flex';
   wm.classList.remove('bump');void wm.offsetWidth;wm.classList.add('bump');
 }
 function acceptAnswer(raw,answer,typo){
+  sfx('correct');
   document.getElementById('wrong-msg').style.display='none';
   qAnswered=true;clearInterval(qTimer);
   const q=sessionQs[sessionIdx];
   const mountain=mountainForPts(answer.pts);
-  const typoNote=typo?`<span class="typo-note">(auto-corrected to ${answer.t})</span>`:'';
+  const fixed=!!typo||normAns(answer.t)!==normAns(raw);
+  const shown=fixed?answer.t:raw;
+  const typoNote=fixed&&normAns(answer.t)!==normAns(raw)?`<span class="typo-note">(you typed "${raw}")</span>`:'';
   const item=document.createElement('div');item.className='guess-item hit';
-  item.innerHTML=`<span>✓</span><span>${raw} ${typoNote}</span><span class="guess-pts">+${answer.pts} pts</span><span class="guess-mountain">→ ${mountain.name}</span>`;
+  item.innerHTML=`<span>✓</span><span>${shown} ${typoNote}</span><span class="guess-pts">+${answer.pts} pts</span><span class="guess-mountain">→ ${mountain.name}</span>`;
   document.getElementById('guess-history').prepend(item);
   document.getElementById('qmb-name').textContent=mountain.name;
   document.getElementById('qmb-elev').textContent=mountain.elev>0?mountain.elev.toLocaleString()+' m':'Sea level';
@@ -1443,11 +1472,9 @@ async function submitAnswer(){
   const raw=document.getElementById('answer-input').value.trim();
   if(!raw)return;
   const q=sessionQs[sessionIdx];
-  const result=matchAnswer(raw, q);
   document.getElementById('answer-input').value='';
   const wm=document.getElementById('wrong-msg');
-  if(result){acceptAnswer(raw,result.answer,result.typo);return;}
-  // not in the list — ask the AI judge (timer keeps running!)
+  // every answer goes to the AI judge (timer keeps running)
   const myIdx=sessionIdx;
   aiChecking=true;
   wm.innerHTML=`⛰️&nbsp;Checking <strong>${raw}</strong>…`;
@@ -1456,7 +1483,17 @@ async function submitAnswer(){
   aiChecking=false;
   // question may have ended or moved on while we waited
   if(qAnswered||sessionIdx!==myIdx||!document.getElementById('screen-trivia').classList.contains('active')){wm.style.display='none';wm.style.color='';return;}
-  if(v&&v.valid){
+  if(v===null){
+    // judge unreachable: use the built-in list as a backup, otherwise ask to retry (never call it wrong)
+    const local=matchAnswer(raw,q);
+    if(local){acceptAnswer(raw,local.answer,local.typo);return;}
+    wm.innerHTML=`⚠️&nbsp;Couldn't reach the judge. Press Enter to try <strong>${raw}</strong> again.`;
+    wm.style.color='var(--warning)';wm.classList.remove('bump');void wm.offsetWidth;wm.classList.add('bump');
+    document.getElementById('answer-input').value=raw;
+    document.getElementById('answer-input').focus();
+    return;
+  }
+  if(v.valid){
     const pts=Math.max(1,Math.min(100,Math.round(v.score||50)));
     const corrected=v.corrected&&normAns(v.corrected)!==normAns(raw);
     acceptAnswer(raw,{t:v.corrected||raw,pts},corrected);
@@ -1470,13 +1507,7 @@ function timeUp(){
   clearInterval(qTimer);if(qAnswered)return;qAnswered=true;updateTimerUI(0);
   document.getElementById('wrong-msg').style.display='none';
   const q=sessionQs[sessionIdx];
-  const revealBox=document.getElementById('time-up-box'),revealList=document.getElementById('reveal-list');
-  revealList.innerHTML='';
-  q.answers.slice().sort((a,b)=>b.pts-a.pts).slice(0,5).forEach(a=>{
-    const span=document.createElement('span');span.className='reveal-answer'+(a.pts===100?' best':'');
-    span.textContent=a.t+(a.pts<100?' ('+a.pts+'pts)':'');revealList.appendChild(span);
-  });
-  revealBox.classList.add('show');
+  document.getElementById('time-up-box').classList.add('show');
   if(!sessionIsPractice) userData.trivia=calcElo(userData.trivia,q.diff,false);
   endQuestion(0,MOUNTAINS[MOUNTAINS.length-1]);
 }
@@ -1771,13 +1802,14 @@ function renderMpQ(){
 }
 
 function mpAccept(raw,answer){
+  sfx('correct');
   document.getElementById('mp-wrong-msg').style.display='none';
   mpGame.qAnswered=true;clearInterval(mpGame.mpTimer);
   const q=mpGame.qs[mpGame.qIdx];
   const mountain=mountainForPts(answer.pts);
   mpGame.myScore+=answer.pts;mpGame.myResults.push({q:q.q,pts:answer.pts,mountain});
   document.getElementById('mp-score').textContent=mpGame.myScore+' pts';
-  const item=document.createElement('div');item.className='guess-item hit';item.innerHTML=`<span>✓</span><span>${raw}</span><span class="guess-pts">+${answer.pts} pts</span><span class="guess-mountain">→ ${mountain.name}</span>`;document.getElementById('mp-guess-history').prepend(item);
+  const item=document.createElement('div');item.className='guess-item hit';const mpShown=(answer.t&&normAns(answer.t)!==normAns(raw))?answer.t:raw;item.innerHTML=`<span>✓</span><span>${mpShown}</span><span class="guess-pts">+${answer.pts} pts</span><span class="guess-mountain">→ ${mountain.name}</span>`;document.getElementById('mp-guess-history').prepend(item);
   document.getElementById('mp-mtn-name').textContent=mountain.name;document.getElementById('mp-mtn-pts').textContent=answer.pts+' pts';document.getElementById('mp-mountain-banner').style.display='flex';
   celebrate(answer.pts,mountain);
   saveMpScore();mpEndQ();
@@ -1786,10 +1818,8 @@ async function mpSubmit(){
   if(mpGame.qAnswered||aiChecking)return;
   const raw=document.getElementById('mp-answer-input').value.trim();if(!raw)return;
   const q=mpGame.qs[mpGame.qIdx];
-  const result=matchAnswer(raw,q);
   document.getElementById('mp-answer-input').value='';
   const mwm=document.getElementById('mp-wrong-msg');
-  if(result){mpAccept(raw,result.answer);return;}
   const myIdx=mpGame.qIdx;
   aiChecking=true;
   mwm.innerHTML=`⛰️&nbsp;Checking <strong>${raw}</strong>…`;
@@ -1797,7 +1827,16 @@ async function mpSubmit(){
   const v=await aiCheck(q,raw);
   aiChecking=false;
   if(mpGame.qAnswered||mpGame.qIdx!==myIdx||!document.getElementById('screen-mp-trivia').classList.contains('active')){mwm.style.display='none';mwm.style.color='';return;}
-  if(v&&v.valid){
+  if(v===null){
+    const local=matchAnswer(raw,q);
+    if(local){mpAccept(raw,local.answer);return;}
+    mwm.innerHTML=`⚠️&nbsp;Couldn't reach the judge. Press Enter to try <strong>${raw}</strong> again.`;
+    mwm.style.color='var(--warning)';mwm.classList.remove('bump');void mwm.offsetWidth;mwm.classList.add('bump');
+    document.getElementById('mp-answer-input').value=raw;
+    document.getElementById('mp-answer-input').focus();
+    return;
+  }
+  if(v.valid){
     const pts=Math.max(1,Math.min(100,Math.round(v.score||50)));
     mpAccept(raw,{t:v.corrected||raw,pts});
   }else{
@@ -1810,8 +1849,6 @@ function mpTimeUp(){
   if(mpGame.qAnswered)return;mpGame.qAnswered=true;
   document.getElementById('mp-wrong-msg').style.display='none';
   const q=mpGame.qs[mpGame.qIdx];
-  const revealList=document.getElementById('mp-reveal-list');revealList.innerHTML='';
-  q.answers.slice().sort((a,b)=>b.pts-a.pts).slice(0,4).forEach(a=>{const span=document.createElement('span');span.className='reveal-answer'+(a.pts===100?' best':'');span.textContent=a.t;revealList.appendChild(span);});
   document.getElementById('mp-timeup-box').classList.add('show');
   mpGame.myResults.push({q:q.q,pts:0,mountain:MOUNTAINS[MOUNTAINS.length-1]});
   saveMpScore();mpEndQ();
