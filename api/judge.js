@@ -20,7 +20,7 @@ Rules:
 2. Accept common alternate names, abbreviations, and spellings (USA, DRC, Congo, etc.).
 3. Accept small typos when the intended answer is clear. Put the correctly spelled answer in "corrected".
 4. Reject answers that do not satisfy the question, are gibberish, or are not real things. Set "valid" to false.
-5. Quality score, only when valid. 1-15 = barely acceptable, 25-45 = a common answer most people would name, 46-65 = well known but not the first thing people think of, 66-80 = moderately niche, 81-90 = niche, 91-100 = rare and expert-level. Be generous with correct answers.
+5. Quality score, only when valid. Be generous. 30-48 = a common answer most people would name, 49-65 = well known but not the first thing people think of, 66-80 = moderately niche, 81-92 = niche, 93-100 = rare and expert-level. Never score a correct answer below 30.
 
 Respond with JSON only: {"valid": true or false, "corrected": "correctly spelled answer or the same answer", "score": number 1-100 (use 1 if invalid)}`;
 
@@ -59,7 +59,7 @@ Respond with JSON only: {"valid": true or false, "corrected": "correctly spelled
     }
 
     const valid = result.valid === true;
-    const score = valid ? Math.max(25, Math.min(100, Math.round(Number(result.score) || 40))) : 0;
+    const score = valid ? Math.max(30, Math.min(100, Math.round(Number(result.score) || 45))) : 0;
     return res.status(200).json({
       valid,
       corrected: typeof result.corrected === 'string' ? result.corrected : answer,
